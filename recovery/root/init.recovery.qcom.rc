@@ -26,26 +26,12 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-on early-init
-    # Start QCE driver, needed to support MDTP in recovery
-    start load_modules
-
 on init
-    chmod 0660 /dev/qseecom
-    chown system drmrpc /dev/qseecom
+    chmod 0777 /dev/qseecom
+    #chown system drmrpc /dev/qseecom
     chmod 0664 /dev/ion
     chown system system /dev/ion
-    start qfintverify
-
-on early-fs
-    start change_blockdev
-    
-service load_modules /sbin/load_modules
-    oneshot
-    disabled
-    user root
-    group root
-    seclabel u:r:recovery:s0
+    #start qfintverify
 
 service change_blockdev /sbin/change_blockdev
     oneshot
@@ -54,13 +40,6 @@ service change_blockdev /sbin/change_blockdev
     group root
     seclabel u:r:recovery:s0
 
-
-service qfintverify /sbin/qfintverify
-    user root
-    class core
-    seclabel u:r:recovery:s0
-    oneshot
-
 service qseecomd /sbin/qseecomd
     oneshot
     disabled
@@ -68,14 +47,34 @@ service qseecomd /sbin/qseecomd
     group root
     seclabel u:r:recovery:s0
 
-# use decryption libraries from /system if available
-service setup-decrypt /sbin/setup_decrypt
+service getadjust /sbin/sh /sbin/readtimeprop.sh
     oneshot
     disabled
     user root
     group root
     seclabel u:r:recovery:s0
 
+service timekeep /sbin/timekeep restore
+    oneshot
+    disabled
+
+service time_daemon /sbin/time_daemon
+    oneshot
+    disabled
+
+on boot
+    start change_blockdev
+    start getadjust
+
 on property:ro.crypto.state=encrypted
     start qseecomd
+
+on property:twrp.timeadjusted=1
+    # update time to value from CM/AOSP based ROMs (after time property was written)
+    start timekeep
+
+on property:twrp.timedaemon=1
+    # update time to value from STOCK based ROMs (after we detect qcom time file)
+    start time_daemon
+
 

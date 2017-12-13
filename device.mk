@@ -16,3 +16,4 @@
 
 PRODUCT_COPY_FILES += \
     device/lenovo/yt_x703f/kernel:kernel
+
